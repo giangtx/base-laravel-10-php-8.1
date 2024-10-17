@@ -1,0 +1,64 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: ${DEV_NAME}
+        uid: ${DEV_UID}
+      context: ./
+      dockerfile: Dockerfile
+    image: company-page-img
+    container_name: company-page-img
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/supervisor/config:/etc/supervisor/conf.d/
+    networks:
+      - company_app
+
+  db:
+    image: mysql:8.0
+    container_name: company-page-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    ports:
+      - 3319:3306
+    volumes:
+      - company_app_db:/var/lib/mysql
+    networks:
+      - company_app
+
+  redis:
+    image: redis:alpine
+    networks:
+      - company_app
+    container_name: company-page-redis
+    ports:
+      - 6389:6379
+    restart:
+      always
+
+  nginx:
+    image: nginx:alpine
+    container_name: company-page-nginx
+    restart: unless-stopped
+    ports:
+      - 8019:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - company_app
+
+volumes:
+  company_app_db:
+networks:
+  company_app:
+    driver: bridge
